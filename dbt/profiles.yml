@@ -1,0 +1,11 @@
+day09:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('DUCKDB_PATH', '../work/lakehouse.duckdb') }}"
+      schema: main
+      threads: 1                      # one writer: a DuckDB file is single-process
+      extensions: [httpfs, delta]
+      settings:
+        TimeZone: UTC

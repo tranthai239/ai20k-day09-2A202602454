@@ -1,0 +1,20 @@
+.cache/
+__pycache__/
+*.pyc
+work/*
+!work/.gitkeep
+.env
+target/
+logs/
+*.duckdb
+*.duckdb.wal
+*.tar
+dbt/.user.yml
+# dữ liệu tải riêng (28 MB): không đưa lên repo, đã có data/MANIFEST.json để kiểm tra
+data/*.mp4
+data/*.csv
+data/sources.json
+data/_instructor/
+day09-data.zip
+*.zip
+dataset/

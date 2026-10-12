@@ -1,0 +1,85 @@
+# Day 9 lab stack. Profiles keep RAM low:
+#   docker compose up -d                       core: MinIO + Postgres            (~0.5 GB)
+#   docker compose --profile orchestrate up -d + Airflow                          (~2 GB)
+#   docker compose --profile bi up -d          + Metabase                         (~1 GB)
+name: day09
+x-lab-env: &lab-env
+  S3_ENDPOINT: http://minio:9000
+  S3_ACCESS_KEY: minioadmin
+  S3_SECRET_KEY: minioadmin
+  LAKE_BUCKET: lake
+  PG_HOST: postgres
+  PG_USER: lab
+  PG_PASSWORD: lab
+  PG_WAREHOUSE_DB: warehouse
+  DATA_DIR: /opt/data
+  WORK_DIR: /opt/work
+  DUCKDB_PATH: /opt/work/lakehouse.duckdb
+  DBT_PROFILES_DIR: /opt/dbt
+  DBT_DIR: /opt/dbt
+  PY: /home/airflow/lab-venv/bin/python
+  DBT: /home/airflow/lab-venv/bin/dbt
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment: {POSTGRES_USER: lab, POSTGRES_PASSWORD: lab, POSTGRES_DB: postgres}
+    volumes: [pgdata:/var/lib/postgresql/data, ./docker/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro]
+    ports: ["5433:5432"]   # host 5433: a local Postgres often owns 5432
+    mem_limit: 512m
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U lab"], interval: 5s, retries: 20}
+
+  minio:
+    # Docker Hub's minio/minio and quay.io/minio images are gone; the frozen Bitnami legacy build still works (MinIO 2025-05-24).
+    image: bitnamilegacy/minio:2025.4.22
+    environment: {MINIO_ROOT_USER: minioadmin, MINIO_ROOT_PASSWORD: minioadmin, MINIO_DEFAULT_BUCKETS: lake}
+    volumes: [miniodata:/bitnami/minio/data]
+    ports: ["9000:9000", "9001:9001"]
+    mem_limit: 768m
+    healthcheck: {test: ["CMD", "curl", "-fs", "http://localhost:9000/minio/health/live"], interval: 5s, retries: 30}
+
+  airflow:
+    profiles: [orchestrate]
+    build: {context: ., dockerfile: docker/airflow.Dockerfile}
+    depends_on: {postgres: {condition: service_healthy}, minio: {condition: service_healthy}}
+    environment:
+      <<: *lab-env
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__PARALLELISM: "2"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://lab:lab@postgres/airflow
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+      AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: "10"
+      AIRFLOW__WEBSERVER__WORKERS: "1"
+      PYTHONPATH: /opt/lab
+      LAB_STUDENT_ID: ${LAB_STUDENT_ID:-}      # your MSSV (put it in .env): salts the train/val/test split
+      LAB_FAIL_ONCE: ${LAB_FAIL_ONCE:-}      # exercise switch: the first attempt for this trip id crashes
+      DBT_TARGET_PATH: /tmp/dbt-target
+      DBT_LOG_PATH: /tmp/dbt-logs
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./pipeline:/opt/lab/pipeline
+      - ./scripts:/opt/lab/scripts:ro
+      - ./tests:/opt/lab/tests:ro
+      - ./report:/opt/lab/report
+      - ./dbt:/opt/dbt
+      - ./data:/opt/data:ro
+      - ./work:/opt/work
+    ports: ["8080:8080"]
+    mem_limit: 2500m
+    healthcheck: {test: ["CMD", "curl", "-fs", "http://localhost:8080/health"], interval: 15s, retries: 40}
+
+  metabase:
+    profiles: [bi]
+    image: metabase/metabase:latest
+    depends_on: {postgres: {condition: service_healthy}}
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: metabase
+      MB_DB_PORT: "5432"
+      MB_DB_USER: lab
+      MB_DB_PASS: lab
+      MB_DB_HOST: postgres
+      JAVA_OPTS: "-Xmx768m"
+    ports: ["3000:3000"]
+    mem_limit: 1500m
+volumes: {pgdata: {}, miniodata: {}}

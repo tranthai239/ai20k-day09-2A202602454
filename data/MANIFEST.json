@@ -1,0 +1,33 @@
+{
+  "zip_name": "day09-data.zip",
+  "zip_sha256": "3f6e8a36c0e4ac0b6c9ca3124abd9b9f4008acacb97f177a672c0551bda85542",
+  "zip_bytes": 27791983,
+  "url": "https://github.com/VinUni-AI20k/K4-L3L4-Track4-DataPipeline4ComputerVision/raw/main/dataset/day09-data.zip",
+  "source": "yaak-ai/L2D-v3 (Apache-2.0), https://huggingface.co/datasets/yaak-ai/L2D-v3",
+  "files": {
+    "drive_a.mp4": {
+      "bytes": 11958062,
+      "sha256": "636ba1a98dfc5ba665d1c935e1d2064e69f4df360ff9ffbd15795957d5e7e9aa"
+    },
+    "drive_b.mp4": {
+      "bytes": 15270065,
+      "sha256": "bfa62703f645ff77a8578ae3fc74a00881140d38a404d43c8e2af265bbee9fdc"
+    },
+    "sources.json": {
+      "bytes": 598,
+      "sha256": "44738df322a4c57d3932c4337db94616d4eac9e741f06c229d845cf77bf0526d"
+    },
+    "telemetry_a.csv": {
+      "bytes": 294438,
+      "sha256": "17f098d6bbb178e6267368ecead21357a82bc167988f1cd4d36fe3bcfa88e6b9"
+    },
+    "telemetry_b.csv": {
+      "bytes": 265524,
+      "sha256": "844e983d0ded879b12826e8acc433eacb281870c4127404ce427e3a3a848e06a"
+    },
+    "trips.csv": {
+      "bytes": 2612,
+      "sha256": "8ad05acc603fe5da7ffe3a29a6b1da0b0ddf694702a2ac1e97b49648d2b435f4"
+    }
+  }
+}

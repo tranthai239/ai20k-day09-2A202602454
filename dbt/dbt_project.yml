@@ -1,0 +1,23 @@
+name: day09
+version: "1.0"
+config-version: 2
+profile: day09
+model-paths: [models]
+macro-paths: [macros]
+vars:
+  dark_luma: 12.0        # mean luma below this = black frame
+  dark_soft: 40.0        # mean luma below this = low-light frame: flagged, but kept (night and tunnels are real conditions)
+  blur_var: 40.0         # Laplacian variance below this = blurry frame
+  dup_hamming: 2         # dHash bits allowed to differ for a near-duplicate
+  sync_tol_ms: 150       # max gap between a frame and its telemetry row
+  max_speed_mps: 70      # above this a speed reading is impossible
+  split_train: 0.70
+  split_val: 0.15
+models:
+  day09:
+    staging: {+materialized: view, +schema: staging}
+    silver:  {+materialized: table, +schema: silver}
+    gold:    {+materialized: table, +schema: gold}
+    marts:   {+materialized: table, +schema: marts}
+on-run-start:
+  - "{{ create_lake_views() }}"

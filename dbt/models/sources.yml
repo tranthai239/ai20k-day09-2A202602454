@@ -1,0 +1,15 @@
+version: 2
+sources:
+  - name: lake
+    description: Delta tables written by the Python steps, exposed to DuckDB as views (see macros/lake.sql).
+    tables:
+      - name: raw_telemetry_a
+        columns: [{name: ts_utc, tests: [not_null]}]
+      - name: raw_telemetry_b
+        columns: [{name: timestamp_ms, tests: [not_null]}]
+      - name: trips_raw
+        columns: [{name: trip_id, tests: [not_null, unique]}]
+      - name: video_files
+        columns: [{name: drive_id, tests: [not_null, unique]}]
+      - name: frames
+        columns: [{name: frame_id, tests: [not_null, unique]}]

@@ -1,0 +1,63 @@
+version: 2
+# The quality gate. `error` tests stop the pipeline; `warn` tests report a known, tolerated defect.
+models:
+  - name: silver_telemetry
+    description: Clean telemetry, one conformed schema (m/s, degrees, UTC); duplicates and impossible readings are quarantined.
+    tests:
+      - unique_combination: {arguments: {columns: [drive_id, ts]}}
+    columns:
+      - name: ts
+        tests:
+          - not_null
+          # sensor dropouts are reported, not fatal
+          - max_gap_ms: {arguments: {partition_by: drive_id, max_ms: 1000}, config: {severity: warn}}
+      - name: speed_mps
+        tests:
+          - not_null
+          - in_range: {arguments: {min_value: 0, max_value: 70}}
+      - name: drive_id
+        tests:
+          - accepted_values: {arguments: {values: [drive_a, drive_b]}}
+  - name: silver_telemetry_rejects
+    columns:
+      - name: reject_reason
+        tests:
+          - accepted_values: {arguments: {values: [duplicate, speed_missing, speed_out_of_range]}}
+  - name: silver_trips
+    columns:
+      - name: trip_id
+        tests: [unique, not_null]
+  - name: silver_frames_flagged
+    columns:
+      - name: frame_id
+        tests: [unique, not_null]
+      - name: trip_id
+        tests:
+          - relationships: {arguments: {to: "ref('silver_trips')", field: trip_id}}
+      - name: is_black
+        # more than 10% black frames means a broken camera: stop
+        tests:
+          - max_share: {arguments: {max_share: 0.10}}
+  - name: silver_frame_telemetry
+    columns:
+      - name: sync_lost
+        # more than 5% of frames without a nearby reading: warn
+        tests:
+          - max_share: {arguments: {max_share: 0.05}, config: {severity: warn}}
+  - name: gold_dataset_frames
+    description: Training-set manifest, one row per kept frame, split per trip.
+    columns:
+      - name: frame_id
+        tests: [unique, not_null]
+      - name: split
+        tests:
+          - accepted_values: {arguments: {values: [train, val, test]}}
+      - name: trip_id
+        # leakage guard: a trip may live in ONE split only
+        tests:
+          - no_straddle: {arguments: {across: split}}
+      - name: frame_uri
+        tests: [not_null]
+      - name: speed_mps
+        tests:
+          - in_range: {arguments: {min_value: 0, max_value: 70}}
